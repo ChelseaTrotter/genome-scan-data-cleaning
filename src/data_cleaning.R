@@ -2,40 +2,68 @@ library(mice)
 # library(lattice)
 library(parallel)
 library(qtl2)
+library(tidyverse)
 
 getdata<-function(url){
   return(read_cross2(url))
+  # print("hello")
 }
-
-
 #keepidx<-which(rowSums(is.na(bxd$pheno))<1000798)
 
-keep_row<-function(data, droprate){
-  rs = rowSums(is.na(data$pheno)) 
-  print(quantile(rs, 1-droprate/100, names=FALSE))
-  keepidx <- which(rs < quantile(rs, 1-droprate/100, names=FALSE))
-  return(subset(data,ind=keepidx))
+keep_row_idx<-function(pheno, droprate){
+  rs = rowSums(is.na(pheno)) 
+  #keepidx <- which(rs < quantile(rs, 1-droprate/100, names=FALSE))
+  keepidx <- which(rs/ncol(pheno) <= droprate)
+  return(keepidx)
 }
 
-drop_col<-function(data, droprate){
-  rownames(data$pheno)<-data$pheno$ID
-  data$pheno<-data$pheno[,-1]
+keep_col_idx<-function(pheno, droprate){
+  #rownames(pheno)<-pheno$ID
+ # pheno<-pheno[,-1]
 
-  trait = data$pheno
-  end<-dim(trait)[2]
-
-  cs = colSums(is.na(trait[,2:(end-1)]))
-  drop.idx<-which(cs > quantile(cs, 1-droprate/100, names=FALSE))
-  trait<-trait[,2:(end-1)]
-  trait<-trait[,-drop.idx]
-  return(trait)
+  cs = colSums(is.na(pheno))
+  #drop.idx<-which(cs > quantile(cs, 1-droprate/100, names=FALSE))
+  keepidx <- which(cs/nrow(pheno) <= droprate)
+  #trait<-trait[,2:(end-1)]
+  #trait<-trait[,-drop.idx]
+  return(keepidx)
 }
 
-calc_geno_prob<-function(sub_cross, ncore, error_prob, step, pseudomarker){
+calc_gprob_update_gmap<-function(gmap_file, cross, ncore=1, error_prob=0.002, step=0, pseudomarker=FALSE){
 
   #insert pseudomarker
-  map <- insert_pseudomarkers(sub_cross$gmap, step=step)
-  pr <- calc_genoprob(sub_cross, map, error_prob=error_prob, cores=ncores)
+  map = cross$gmap
+  if(pseudomarker){
+    map <- insert_pseudomarkers(map, step=step)
+    #write.csv(map, file=gmap_file, row.names = FALSE)
+  }
+  
+  pr <- calc_genoprob(cross, map, error_prob=error_prob, cores=ncore)
+  return(pr)
+}
+
+# intersect(phenotype, genotype, 
+            # selected_pheno = "ProbeSet", 
+            # selected_geno = one_of("Locus","Chr","cM","Mb"), 
+            # match_name="BXD")
+intersect <- function(pheno, geno, selected_pheno, selected_geno, match_name){
+  sub_pheno = cbind(select(pheno, selected_pheno), select(pheno, match_name))
+  sub_pheno_names = names(sub_pheno)
+
+  sub_geno = cbind(select(geno, selected_geno), select(geno, match_name))
+  sub_geno_names = names(sub_geno)
+
+  transed_sub_pheno_df = as_tibble(t(sub_pheno))
+  transed_sub_geno_df = as_tibble(t(sub_geno))
+
+  transed_sub_pheno_df$id <- sub_pheno_names
+  transed_sub_geno_df$id <- sub_geno_names
+
+  join_by_this = "id"
+  joined_data = right_join(transed_sub_pheno_df, transed_sub_geno_df, join_by_this)
+  joined_data[1, 1:ncol(transed_sub_pheno_df)] <- 
+
+
 }
 
 #get whole genotype prob file
@@ -58,24 +86,47 @@ getGenopr<-function(x){
 # indi_droprate: droprate in percentage, ie: 10 percent
 # trait_droprate : droprate in percentage, ie: 10 percent
 # ncores: default detectCores()
-cleaning<-function(url, indi_droprate=10, trait_droprate=10, nseed=10, ncores=detectCores(), error_prob=0.002, step=1){  
+clean_and_write<-function(url, geno_output_file, pheno_output_file, new_gmap_file, indi_droprate, trait_droprate, nseed, ncores, error_prob, stepsize){  
+  url = "/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/BXD/BXD.yaml"
+  indi_droprate = 0.0
+  trait_droprate = 0.0
+  
   bxd = getdata(url)
+  print("got data from url")
 
+  # intersect 
+
+
+  
   # process pheno
-  sub_cross = keep_row(bxd, indi_droprate)
-  trait = keep_col(sub_cross, trait_droprate)
+  col_idx = keep_col_idx(bxd$pheno, trait_droprate)
+  trait<-bxd$pheno[,col_idx]
+  row_idx = keep_row_idx(trait, indi_droprate)
+  trait<-trait[row_idx,]
 
+  print("processing pheno done")
+  
   #imputation
-  temp_imp = mice(trait, defaultMethod = "pmm", seed = nseed)
-  imp = complete(temp_imp)
-
+  # temp_imp = mice(trait,m=1, method = "norm", seed = nseed)
+  #print("mice done")
+  #imp = complete(temp_imp)
+  #print("complete imputation done")
+  
   # calculate genotype probablity
-  pr = calc_geno_prob(sub_cross, ncores, error_prob, step)
+  pr = calc_gprob_update_gmap(new_gmap_file, bxd, ncores, error_prob, step)
   prob1 = getGenopr(pr)
+  print("calculating geno prob done")
+  
+  write.csv(imp, file = pheno_output_file, row.names = FALSE)
+  write.csv(prob1[row_idx,], file = geno_output_file, row.names = FALSE)
+  print("writing out pheno and geno done")
 
 }
 
-#cleaning("http://gn2-zach.genenetwork.org/api/v_pre1/genotypes/rqtl2/BXD.zip")
 
-bxd = getdata("http://gn2-zach.genenetwork.org/api/v_pre1/genotypes/rqtl2/BXD.zip")
+
+
+#clean_and_write("/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/BXD/BXD.zip", "geno_prob.csv", "imputed_pheno.csv", "gmap.csv", 10,10, 1,detectCores(), 0.002, 1)
+
+#bxd = getdata("/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/BXD/BXD.zip")
 
