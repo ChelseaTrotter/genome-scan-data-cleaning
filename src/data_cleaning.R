@@ -29,7 +29,7 @@ calc_gprob_update_gmap<-function(gmap_file, cross, ncore=1, error_prob=0.002, st
   map = cross$gmap
   if(pseudomarker){
     map <- insert_pseudomarkers(map, step=step)
-    #write.csv(map, file=gmap_file, row.names = FALSE)
+    write.csv(map, file=gmap_file, row.names = FALSE)
   }
   
   pr <- calc_genoprob(cross, map, error_prob=error_prob, cores=ncore)
@@ -106,8 +106,8 @@ clean_and_write<-function(url, geno_output_file="geno_prob.csv", pheno_output_fi
   prob1 = getGenopr(pr)
   print("calculating geno prob done")
   
-  write.csv(filled_bxd$pheno, file = pheno_output_file, row.names = FALSE)
-  write.csv(filled_bxd$geno, file = geno_output_file, row.names = FALSE)
+  write.csv(filled_bxd$pheno, file = pheno_output_file)
+  write.csv(prob1, file = geno_output_file)
   print("writing out pheno and geno done")
 
 }

@@ -23,15 +23,14 @@ function parse_commandline()
 
         "--threashold"
             help = "Threashold of NA to keep individuals"
-            arg_type = Int
-            default = 10    # 0 means no missing data, therefore no imputation. 
+            default = 0.0    # 0 means no missing data, therefore no imputation. 
                             # 1-10 means there are missing data, need to impute and provide a seed to the following argument. 
         "--nseed"
             help = "Provide a seed for randome number generator"
-            default = 10
+            default = 100
         "--ncores"
             help = "Define how many cores to use for imputation"
-            default = length(Sys.cpu_info())
+            default = 1
         "--error_prob"
             help = "TODO"
             default = 0.002
