@@ -40,24 +40,6 @@ calc_gprob_update_gmap<-function(gmap_file, cross, ncore=1, error_prob=0.002, st
             # selected_pheno = "ProbeSet", 
             # selected_geno = one_of("Locus","Chr","cM","Mb"), 
             # match_name="BXD")
-# intersect <- function(pheno, geno, selected_pheno, selected_geno, match_name){
-#   sub_pheno = cbind(select(pheno, selected_pheno), select(pheno, match_name))
-#   sub_pheno_names = names(sub_pheno)
-
-#   sub_geno = cbind(select(geno, selected_geno), select(geno, match_name))
-#   sub_geno_names = names(sub_geno)
-
-#   transed_sub_pheno_df = as_tibble(t(sub_pheno))
-#   transed_sub_geno_df = as_tibble(t(sub_geno))
-
-#   transed_sub_pheno_df$id <- sub_pheno_names
-#   transed_sub_geno_df$id <- sub_geno_names
-
-#   join_by_this = "id"
-#   joined_data = right_join(transed_sub_pheno_df, transed_sub_geno_df, join_by_this)
-#   # joined_data[1, 1:ncol(transed_sub_pheno_df)] <- 
-
-# }
 
 #get whole genotype prob file
 getGenopr<-function(x){
@@ -75,51 +57,57 @@ getGenopr<-function(x){
   return(temp)
 }
 
+
 # url : data url
 # indi_droprate: droprate in percentage, ie: 10 percent
 # trait_droprate : droprate in percentage, ie: 10 percent
 # ncores: default detectCores()
 clean_and_write<-function(url, geno_output_file="geno_prob.csv", pheno_output_file="pheno.csv", new_gmap_file="gmap.csv", 
                           indi_droprate=0.0, trait_droprate=0.0, nseed=100, ncores=1, error_prob=0.002, stepsize=1){  
-  url = "/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/UTHSC_SPL_RMA_1210.zip"
-  geno_output_file="geno_prob.csv"
-  pheno_output_file="pheno.csv"
-  indi_droprate = 0.0
-  trait_droprate = 0.0
-  trait_droprate=0.0
-  nseed=100
-  ncores=1
-  error_prob=0.002
-  stepsize=1
+  # url = "/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/UTHSC_SPL_RMA_1210.zip"
+  # geno_output_file="geno_prob.csv"
+  # pheno_output_file="pheno.csv"
+  # indi_droprate = 0.0
+  # trait_droprate = 0.0
+  # trait_droprate=0.0
+  # nseed=100
+  # ncores=1
+  # error_prob=0.002
+  # stepsize=1
   
   bxd = getdata(url)
   print("got data from url")
 
   # intersect 
-  
-
+  # pick out shared bxd ids in geno and pheno 
+  bxd_ids <- ind_ids_gnp(bxd)
+  joint_bxd <- subset(bxd, ind = bxd_ids)
+  # pick out the ones with no missing data
+  filled_ids <- ind_ids(joint_bxd)[complete.cases(joint_bxd$pheno)]
+  filled_bxd = subset(joint_bxd, ind = filled_ids)
   
   # process pheno
-  col_idx = keep_col_idx(bxd$pheno, trait_droprate)
-  trait<-bxd$pheno[,col_idx]
-  row_idx = keep_row_idx(trait, indi_droprate)
-  trait<-trait[row_idx,]
-
-  print("processing pheno done")
+  # trait = bxd$pheno
+  # row_idx = keep_row_idx(trait, indi_droprate)
+  # trait<-trait[row_idx,]
+  # col_idx = keep_col_idx(trait, trait_droprate)
+  # trait<-trait[,col_idx]
+  # print("processing pheno done")
   
   #imputation
   # temp_imp = mice(trait,m=1, method = "norm", seed = nseed)
-  #print("mice done")
+  #col_idx = keep_col_idx(trait, trait_droprate)
+  #pheno[,col_idx]print("mice done")
   #imp = complete(temp_imp)
   #print("complete imputation done")
   
   # calculate genotype probablity
-  pr = calc_gprob_update_gmap(new_gmap_file, bxd, ncores, error_prob, step)
+  pr = calc_gprob_update_gmap(new_gmap_file, filled_bxd, ncores, error_prob, step)
   prob1 = getGenopr(pr)
   print("calculating geno prob done")
   
-  write.csv(trait, file = pheno_output_file, row.names = FALSE)
-  write.csv(prob1[row_idx,], file = geno_output_file, row.names = FALSE)
+  write.csv(filled_bxd$pheno, file = pheno_output_file, row.names = FALSE)
+  write.csv(filled_bxd$geno, file = geno_output_file, row.names = FALSE)
   print("writing out pheno and geno done")
 
 }

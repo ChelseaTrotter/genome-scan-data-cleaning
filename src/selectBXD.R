@@ -17,7 +17,7 @@ d0  <- select(d,"ProbeSet")
 ## select BXD columns
 d1 <- select(d,matches("BXD"))
 ## put probeset and BXD together
-d2  <- cbind(d0,d1)Vante
+d2  <- cbind(d0,d1)
 ## get the names of each column
 d2names  <- names(d2)
 
