@@ -12,20 +12,14 @@ getdata<-function(url){
 
 keep_row_idx<-function(pheno, droprate){
   rs = rowSums(is.na(pheno)) 
-  #keepidx <- which(rs < quantile(rs, 1-droprate/100, names=FALSE))
   keepidx <- which(rs/ncol(pheno) <= droprate)
   return(keepidx)
 }
 
 keep_col_idx<-function(pheno, droprate){
-  #rownames(pheno)<-pheno$ID
- # pheno<-pheno[,-1]
 
   cs = colSums(is.na(pheno))
-  #drop.idx<-which(cs > quantile(cs, 1-droprate/100, names=FALSE))
   keepidx <- which(cs/nrow(pheno) <= droprate)
-  #trait<-trait[,2:(end-1)]
-  #trait<-trait[,-drop.idx]
   return(keepidx)
 }
 
@@ -46,25 +40,24 @@ calc_gprob_update_gmap<-function(gmap_file, cross, ncore=1, error_prob=0.002, st
             # selected_pheno = "ProbeSet", 
             # selected_geno = one_of("Locus","Chr","cM","Mb"), 
             # match_name="BXD")
-intersect <- function(pheno, geno, selected_pheno, selected_geno, match_name){
-  sub_pheno = cbind(select(pheno, selected_pheno), select(pheno, match_name))
-  sub_pheno_names = names(sub_pheno)
+# intersect <- function(pheno, geno, selected_pheno, selected_geno, match_name){
+#   sub_pheno = cbind(select(pheno, selected_pheno), select(pheno, match_name))
+#   sub_pheno_names = names(sub_pheno)
 
-  sub_geno = cbind(select(geno, selected_geno), select(geno, match_name))
-  sub_geno_names = names(sub_geno)
+#   sub_geno = cbind(select(geno, selected_geno), select(geno, match_name))
+#   sub_geno_names = names(sub_geno)
 
-  transed_sub_pheno_df = as_tibble(t(sub_pheno))
-  transed_sub_geno_df = as_tibble(t(sub_geno))
+#   transed_sub_pheno_df = as_tibble(t(sub_pheno))
+#   transed_sub_geno_df = as_tibble(t(sub_geno))
 
-  transed_sub_pheno_df$id <- sub_pheno_names
-  transed_sub_geno_df$id <- sub_geno_names
+#   transed_sub_pheno_df$id <- sub_pheno_names
+#   transed_sub_geno_df$id <- sub_geno_names
 
-  join_by_this = "id"
-  joined_data = right_join(transed_sub_pheno_df, transed_sub_geno_df, join_by_this)
-  joined_data[1, 1:ncol(transed_sub_pheno_df)] <- 
+#   join_by_this = "id"
+#   joined_data = right_join(transed_sub_pheno_df, transed_sub_geno_df, join_by_this)
+#   # joined_data[1, 1:ncol(transed_sub_pheno_df)] <- 
 
-
-}
+# }
 
 #get whole genotype prob file
 getGenopr<-function(x){
@@ -86,16 +79,24 @@ getGenopr<-function(x){
 # indi_droprate: droprate in percentage, ie: 10 percent
 # trait_droprate : droprate in percentage, ie: 10 percent
 # ncores: default detectCores()
-clean_and_write<-function(url, geno_output_file, pheno_output_file, new_gmap_file, indi_droprate, trait_droprate, nseed, ncores, error_prob, stepsize){  
-  url = "/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/BXD/BXD.yaml"
+clean_and_write<-function(url, geno_output_file="geno_prob.csv", pheno_output_file="pheno.csv", new_gmap_file="gmap.csv", 
+                          indi_droprate=0.0, trait_droprate=0.0, nseed=100, ncores=1, error_prob=0.002, stepsize=1){  
+  url = "/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/UTHSC_SPL_RMA_1210.zip"
+  geno_output_file="geno_prob.csv"
+  pheno_output_file="pheno.csv"
   indi_droprate = 0.0
   trait_droprate = 0.0
+  trait_droprate=0.0
+  nseed=100
+  ncores=1
+  error_prob=0.002
+  stepsize=1
   
   bxd = getdata(url)
   print("got data from url")
 
   # intersect 
-
+  
 
   
   # process pheno
@@ -117,14 +118,15 @@ clean_and_write<-function(url, geno_output_file, pheno_output_file, new_gmap_fil
   prob1 = getGenopr(pr)
   print("calculating geno prob done")
   
-  write.csv(imp, file = pheno_output_file, row.names = FALSE)
+  write.csv(trait, file = pheno_output_file, row.names = FALSE)
   write.csv(prob1[row_idx,], file = geno_output_file, row.names = FALSE)
   print("writing out pheno and geno done")
 
 }
 
 
-
+url = "/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/UTHSC_SPL_RMA_1210.zip"
+#clean_and_write(url)
 
 #clean_and_write("/Users/xiaoqihu/Documents/hg/genome-scan-data-cleaning/data/BXD/BXD.zip", "geno_prob.csv", "imputed_pheno.csv", "gmap.csv", 10,10, 1,detectCores(), 0.002, 1)
 
