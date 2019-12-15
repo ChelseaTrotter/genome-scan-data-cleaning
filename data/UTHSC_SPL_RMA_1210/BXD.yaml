@@ -1,0 +1,15 @@
+crosstype: f2
+geno: BXD_geno.csv
+gmap: BXD_gmap.csv
+pheno: BXD_pheno.csv
+phenocovar: pheno_covar.csv
+alleles:
+- B
+- D
+genotypes:
+  H: 2
+  B: 3
+  D: 1
+na.strings:
+- '-'
+- 'NA'
